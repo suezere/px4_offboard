@@ -1,7 +1,7 @@
 {
     "acados_include_path": "/home/rcir/workspace/acados/include",
     "acados_lib_path": "/home/rcir/workspace/acados/lib",
-    "code_export_directory": "/home/rcir/workspace/ws_multi/src/px4_offboard/px4_offboard/c_generated_code",
+    "code_export_directory": "/home/rcir/workspace/ws_pympc/src/px4_offboard/px4_offboard/c_generated_code",
     "constraints": {
         "C": [],
         "C_e": [],

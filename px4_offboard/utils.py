@@ -49,20 +49,3 @@ def Euler2Quaternion(phi, theta, psi):
 
 
 
-
-q = Euler2Quaternion(0,0,0)
-print(q)
-q_enu = Quaternion(q[0],q[2],q[1], - q[3])
-q_90 = Quaternion(axis = [0, 0, 1], degrees = 90)
-q_enu = q_enu *q_90
-print(q_enu[0], q_enu[1], q_enu[2], q_enu[3])
-
-
-
-
-# qq = Euler2Quaternion(np.pi, 0.0, np.pi/2)
-# qq = Quaternion(qq[0],qq[1],qq[2], qq[3])
-# q_enu2 = qq * q
-# print(q_enu2)
-# a1,b1,c1 = Quaternion2Euler(q_enu2)
-# print(a1,b1,c1)

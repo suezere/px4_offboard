@@ -31,40 +31,40 @@ class OffboardControl(Node):
 
         # Create publishers
         self.offboard_control_mode_publisher_1 = self.create_publisher(
-            OffboardControlMode, '/px4_1/fmu/in/offboard_control_mode', qos_profile)
+            OffboardControlMode, '/fmu/in/offboard_control_mode', qos_profile)
         self.vehicle_attitude_setpoint_publisher_1 = self.create_publisher(
-            VehicleAttitudeSetpoint,"/px4_1/fmu/in/vehicle_attitude_setpoint", qos_profile)
+            VehicleAttitudeSetpoint,"/fmu/in/vehicle_attitude_setpoint", qos_profile)
         self.trajectory_setpoint_publisher_1 = self.create_publisher(
-            TrajectorySetpoint, '/px4_1/fmu/in/trajectory_setpoint', qos_profile)
+            TrajectorySetpoint, '/fmu/in/trajectory_setpoint', qos_profile)
         self.vehicle_command_publisher_1 = self.create_publisher(
-            VehicleCommand, '/px4_1/fmu/in/vehicle_command', qos_profile)
+            VehicleCommand, '/fmu/in/vehicle_command', qos_profile)
         self.offboard_control_mode_publisher_2 = self.create_publisher(
-            OffboardControlMode, '/px4_2/fmu/in/offboard_control_mode', qos_profile)
+            OffboardControlMode, '/px4_3/fmu/in/offboard_control_mode', qos_profile)
         self.vehicle_attitude_setpoint_publisher_2 = self.create_publisher(
-            VehicleAttitudeSetpoint,"/px4_2/fmu/in/vehicle_attitude_setpoint", qos_profile)
+            VehicleAttitudeSetpoint,"/px4_3/fmu/in/vehicle_attitude_setpoint", qos_profile)
         self.trajectory_setpoint_publisher_2 = self.create_publisher(
-            TrajectorySetpoint, '/px4_2/fmu/in/trajectory_setpoint', qos_profile)
+            TrajectorySetpoint, '/px4_3/fmu/in/trajectory_setpoint', qos_profile)
         self.vehicle_command_publisher_2 = self.create_publisher(
-            VehicleCommand, '/px4_2/fmu/in/vehicle_command', qos_profile)
+            VehicleCommand, '/px4_3/fmu/in/vehicle_command', qos_profile)
 
         # Create subscribers
         self.vehicle_status_sub_1 = self.create_subscription(
-            VehicleStatus, '/px4_1/fmu/out/vehicle_status',
+            VehicleStatus, '/fmu/out/vehicle_status',
             self.vehicle_status_callback_1, qos_profile)
         self.hover_thrust_sub_1 = self.create_subscription(
-            HoverThrustEstimate, '/px4_1/fmu/out/hover_thrust_estimate',
+            HoverThrustEstimate, '/fmu/out/hover_thrust_estimate',
             self.hover_thrust_callback_1, qos_profile)
         self.vehicle_odometry_sub_1 = self.create_subscription(
-            VehicleOdometry, '/px4_1fmu/out/vehicle_odometry', 
+            VehicleOdometry, 'fmu/out/vehicle_odometry', 
             self.vehicle_odometry_callback_1, qos_profile)
         self.vehicle_status_sub_2 = self.create_subscription(
-            VehicleStatus, '/px4_2/fmu/out/vehicle_status',
+            VehicleStatus, '/px4_3/fmu/out/vehicle_status',
             self.vehicle_status_callback_2, qos_profile)
         self.hover_thrust_sub_2 = self.create_subscription(
-            HoverThrustEstimate, '/px4_2/fmu/out/hover_thrust_estimate',
+            HoverThrustEstimate, '/px4_3/fmu/out/hover_thrust_estimate',
             self.hover_thrust_callback_2, qos_profile)
         self.vehicle_odometry_sub_2 = self.create_subscription(
-            VehicleOdometry, '/px4_2/fmu/out/vehicle_odometry', 
+            VehicleOdometry, '/px4_3/fmu/out/vehicle_odometry', 
             self.vehicle_odometry_callback_2, qos_profile)
 
         # Initialize variables
