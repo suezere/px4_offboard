@@ -1,0 +1,14 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/rcir/Dev/ws_multi/install/px4_msgs/local/lib/python3.10/dist-packages",
+        "/opt/drake/lib/python3.10/site-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/rcir/Dev/ws_multi/install/px4_msgs/local/lib/python3.10/dist-packages",
+        "/opt/drake/lib/python3.10/site-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ]
+}
