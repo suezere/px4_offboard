@@ -54,8 +54,8 @@ def quadrotor_model() -> AcadosModel:
     dx = u
     dy = v
     dz = w
-    du = sin(pitch) * cos(roll) * thrust/hover_thrust*g
-    dv = -sin(roll) * thrust/hover_thrust*g
+    du = (sin(pitch) * cos(roll) * cos(yaw)+sin(roll)*sin(yaw))* thrust/hover_thrust*g
+    dv = (cos(roll)*sin(pitch)*sin(yaw)-sin(roll)*cos(yaw)) * thrust/hover_thrust*g
     dw = -g + cos(pitch) * cos(roll) * thrust/hover_thrust*g
     droll = (roll_cmd - roll) / tau_roll
     dpitch = (pitch_cmd - pitch) / tau_pitch

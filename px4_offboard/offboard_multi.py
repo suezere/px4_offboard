@@ -10,7 +10,7 @@ from acados_settings_model import acados_ocp
 from utils import *
 
 # Initialize MPC
-N = 20  # number of discretization steps   
+N = 40  # number of discretization steps   
 acados_solver_1 = acados_ocp(N)
 acados_solver_2 = acados_ocp(N)
 
@@ -33,7 +33,7 @@ class OffboardControl(Node):
         self.offboard_control_mode_publisher_1 = self.create_publisher(
             OffboardControlMode, '/px4_1/fmu/in/offboard_control_mode', qos_profile)
         self.vehicle_attitude_setpoint_publisher_1 = self.create_publisher(
-            VehicleAttitudeSetpoint,"/px4_1/fmu/in/vehicle_attitude_setpoint", qos_profile)
+            VehicleAttitudeSetpoint,'/px4_1/fmu/in/vehicle_attitude_setpoint', qos_profile)
         self.trajectory_setpoint_publisher_1 = self.create_publisher(
             TrajectorySetpoint, '/px4_1/fmu/in/trajectory_setpoint', qos_profile)
         self.vehicle_command_publisher_1 = self.create_publisher(
@@ -55,7 +55,7 @@ class OffboardControl(Node):
             HoverThrustEstimate, '/px4_1/fmu/out/hover_thrust_estimate',
             self.hover_thrust_callback_1, qos_profile)
         self.vehicle_odometry_sub_1 = self.create_subscription(
-            VehicleOdometry, '/px4_1fmu/out/vehicle_odometry', 
+            VehicleOdometry, '/px4_1/fmu/out/vehicle_odometry', 
             self.vehicle_odometry_callback_1, qos_profile)
         self.vehicle_status_sub_2 = self.create_subscription(
             VehicleStatus, '/px4_2/fmu/out/vehicle_status',
@@ -159,8 +159,13 @@ class OffboardControl(Node):
         self.offboard_control_mode_publisher_2.publish(msg)
 
     def publish_vehicle_attitude_setpoint_1(self):
-
-        params = np.array([0.73, 0.1, 0.1, 0])
+        euler_z = self.vehicle_yaw_1
+        if euler_z > np.pi:
+            euler_z = euler_z - 2*np.pi
+        elif euler_z < -np.pi:
+            euler_z= euler_z + 2*np.pi
+            
+        params = np.array([0.73, 0.1, 0.1, euler_z])
 
         # set initial condition for acados integrator
         xcurrent = np.array([self.vehicle_position_1[0], self.vehicle_position_1[1], self.vehicle_position_1[2],
@@ -208,9 +213,13 @@ class OffboardControl(Node):
         self.get_logger().info(f"u1: {u0}")
 
     def publish_vehicle_attitude_setpoint_2(self):
-
-        ref_traj = np.array([1,1,-1])
-        params = np.array([0.73, 0.1, 0.1, 0])
+        euler_z = self.vehicle_yaw_2
+        if euler_z > np.pi:
+            euler_z = euler_z - 2*np.pi
+        elif euler_z < -np.pi:
+            euler_z= euler_z + 2*np.pi
+            
+        params = np.array([0.73, 0.1, 0.1, euler_z])
 
         # set initial condition for acados integrator
         xcurrent = np.array([self.vehicle_position_2[0], self.vehicle_position_2[1], self.vehicle_position_2[2],
@@ -269,7 +278,7 @@ class OffboardControl(Node):
         msg.param5 = params.get("param5", 0.0)
         msg.param6 = params.get("param6", 0.0)
         msg.param7 = params.get("param7", 0.0)
-        msg.target_system = 1
+        msg.target_system = 2
         msg.target_component = 1
         msg.source_system = 1
         msg.source_component = 1
@@ -288,7 +297,7 @@ class OffboardControl(Node):
         msg.param5 = params.get("param5", 0.0)
         msg.param6 = params.get("param6", 0.0)
         msg.param7 = params.get("param7", 0.0)
-        msg.target_system = 4
+        msg.target_system = 3
         msg.target_component = 1
         msg.source_system = 1
         msg.source_component = 1
@@ -303,8 +312,8 @@ class OffboardControl(Node):
         if self.offboard_setpoint_counter == 10:
             self.engage_offboard_mode()
             self.arm()
-        # self.get_logger().info(f"NAV_STATUS1: {self.vehicle_status_1.nav_state}")
-        # self.get_logger().info(f"NAV_STATUS2: {self.vehicle_status_2.nav_state}")
+        self.get_logger().info(f"NAV_STATUS1: {self.vehicle_status_1.nav_state}")
+        self.get_logger().info(f"NAV_STATUS2: {self.vehicle_status_2.nav_state}")
         if (self.vehicle_status_1.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD
          and self.vehicle_status_2.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD):
             self.publish_vehicle_attitude_setpoint_1()

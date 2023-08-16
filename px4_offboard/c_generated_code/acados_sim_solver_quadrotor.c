@@ -77,7 +77,7 @@ int quadrotor_acados_sim_create(sim_solver_capsule * capsule)
     bool tmp_bool;
 
     
-    double Tsim = 0.05;
+    double Tsim = 0.025;
 
     
     // explicit ode

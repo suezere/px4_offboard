@@ -10,7 +10,7 @@ from acados_settings_model import acados_ocp
 from utils import *
 
 # Initialize MPC
-N = 20  # number of discretization steps   
+N = 40  # number of discretization steps   
 acados_solver = acados_ocp(N)
 
 
@@ -125,9 +125,13 @@ class OffboardControl(Node):
         self.get_logger().info(f"Publishing position setpoints {[x, y, z]}")
 
     def publish_vehicle_attitude_setpoint(self):
-
-        ref_traj = np.array([1,1,-1])
-        params = np.array([0.73, 0.1, 0.1, 0])
+        euler_z = self.vehicle_yaw
+        if euler_z > np.pi:
+            euler_z = euler_z - 2*np.pi
+        elif euler_z < -np.pi:
+            euler_z= euler_z + 2*np.pi
+            
+        params = np.array([0.73, 0.1, 0.1, euler_z])
 
         # set initial condition for acados integrator
         xcurrent = np.array([self.vehicle_position[0], self.vehicle_position[1], self.vehicle_position[2],
@@ -174,7 +178,7 @@ class OffboardControl(Node):
         self.vehicle_attitude_setpoint_publisher_.publish(msg)
 
 
-        print("\n\n\n\nx:", xcurrent[:3], "\n", self.vehicle_q, "\n\n\n\nu:", u0, "\n", quaternion)
+        print("\n\n\n\nx:", xcurrent[:3], "\n", self.vehicle_yaw, "\n\n\n\nu:", u0, "\n",)
 
 
     def publish_vehicle_command(self, command, **params) -> None:

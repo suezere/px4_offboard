@@ -159,8 +159,13 @@ class OffboardControl(Node):
         self.offboard_control_mode_publisher_2.publish(msg)
 
     def publish_vehicle_attitude_setpoint_1(self):
-
-        params = np.array([0.73, 0.1, 0.1, 0])
+        euler_z = self.vehicle_yaw_1
+        if euler_z > np.pi:
+            euler_z = euler_z - 2*np.pi
+        elif euler_z < -np.pi:
+            euler_z= euler_z + 2*np.pi
+            
+        params = np.array([0.73, 0.1, 0.1, euler_z])
 
         # set initial condition for acados integrator
         xcurrent = np.array([self.vehicle_position_1[0], self.vehicle_position_1[1], self.vehicle_position_1[2],
@@ -208,9 +213,13 @@ class OffboardControl(Node):
         self.get_logger().info(f"u1: {u0}")
 
     def publish_vehicle_attitude_setpoint_2(self):
-
-        ref_traj = np.array([1,1,-1])
-        params = np.array([0.73, 0.1, 0.1, 0])
+        euler_z = self.vehicle_yaw_2
+        if euler_z > np.pi:
+            euler_z = euler_z - 2*np.pi
+        elif euler_z < -np.pi:
+            euler_z= euler_z + 2*np.pi
+            
+        params = np.array([0.73, 0.1, 0.1, euler_z])
 
         # set initial condition for acados integrator
         xcurrent = np.array([self.vehicle_position_2[0], self.vehicle_position_2[1], self.vehicle_position_2[2],
@@ -303,8 +312,8 @@ class OffboardControl(Node):
         if self.offboard_setpoint_counter == 10:
             self.engage_offboard_mode()
             self.arm()
-        # self.get_logger().info(f"NAV_STATUS1: {self.vehicle_status_1.nav_state}")
-        # self.get_logger().info(f"NAV_STATUS2: {self.vehicle_status_2.nav_state}")
+        self.get_logger().info(f"NAV_STATUS1: {self.vehicle_status_1.nav_state}")
+        self.get_logger().info(f"NAV_STATUS2: {self.vehicle_status_2.nav_state}")
         if (self.vehicle_status_1.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD
          and self.vehicle_status_2.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD):
             self.publish_vehicle_attitude_setpoint_1()

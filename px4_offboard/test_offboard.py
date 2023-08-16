@@ -125,9 +125,13 @@ class OffboardControl(Node):
         self.get_logger().info(f"Publishing position setpoints {[x, y, z]}")
 
     def publish_vehicle_attitude_setpoint(self):
-
-        ref_traj = np.array([1,1,-1])
-        params = np.array([0.73, 0.1, 0.1, 0])
+        euler_z = self.vehicle_yaw
+        if euler_z > np.pi:
+            euler_z = euler_z - 2*np.pi
+        elif euler_z < -np.pi:
+            euler_z= euler_z + 2*np.pi
+            
+        params = np.array([0.73, 0.1, 0.1, euler_z])
 
         # set initial condition for acados integrator
         xcurrent = np.array([self.vehicle_position[0], self.vehicle_position[1], self.vehicle_position[2],
