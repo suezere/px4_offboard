@@ -1,5 +1,5 @@
 import numpy as np
-import time
+import threading
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
@@ -8,11 +8,6 @@ from px4_msgs.msg import OffboardControlMode, VehicleCommand, VehicleAttitudeSet
 
 from acados_settings_model import acados_ocp
 from utils import *
-
-# Initialize MPC
-N = 20  # number of discretization steps   
-acados_solver = acados_ocp(N)
-
 
 class OffboardControl(Node):
     """Node for controlling a vehicle in offboard mode."""
@@ -28,6 +23,10 @@ class OffboardControl(Node):
             depth=1
         )
 
+        # Initialize MPC
+        self.N = 200  # number of discretization steps   
+        self.acados_solver = acados_ocp(self.N)
+        
         # Create publishers
         self.offboard_control_mode_publisher = self.create_publisher(
             OffboardControlMode, '/fmu/in/offboard_control_mode', qos_profile)
@@ -78,8 +77,7 @@ class OffboardControl(Node):
         self.vehicle_velocity = ned_to_enu(self.vehicle_odometry.velocity)
         self.vehicle_q = ned_to_enu_quaternion(self.vehicle_odometry.q)
         self.vehicle_roll, self.vehicle_pitch, self.vehicle_yaw = Quaternion2Euler(self.vehicle_q)
-
-     
+   
     def arm(self):
         """Send an arm command to the vehicle."""
         self.publish_vehicle_command(
@@ -139,27 +137,27 @@ class OffboardControl(Node):
                              self.vehicle_roll, self.vehicle_pitch])
 
 
-        for j in range(N):
+        for j in range(self.N):
             yref = np.array([0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                              0.73, 0.0, 0.0])
                             # self.hover_thrust, 1.0, 0.0, 0.0, 0.0])
-            acados_solver.set(j, "yref", yref)
-            acados_solver.set(j, "p", params)
+            self.acados_solver.set(j, "yref", yref)
+            self.acados_solver.set(j, "p", params)
         yref_N = np.array([0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        acados_solver.set(N, "yref", yref_N)
-        acados_solver.set(N, "p", params)
+        self.acados_solver.set(self.N, "yref", yref_N)
+        self.acados_solver.set(self.N, "p", params)
         
         # solve ocp for a fixed reference
-        acados_solver.set(0, "lbx", xcurrent)
-        acados_solver.set(0, "ubx", xcurrent)
+        self.acados_solver.set(0, "lbx", xcurrent)
+        self.acados_solver.set(0, "ubx", xcurrent)
 
-        status = acados_solver.solve()
+        status = self.acados_solver.solve()
         if status != 0:
             print("acados returned status {} in closed loop.".format(status))
 
         # get solution from acados_solver
-        xcurrent_pred = acados_solver.get(1, "x")
-        u0 = acados_solver.get(0, "u")
+        xcurrent_pred = self.acados_solver.get(1, "x")
+        u0 = self.acados_solver.get(0, "u")
 
         # computed inputs
         Thrust = u0[0]
@@ -179,7 +177,6 @@ class OffboardControl(Node):
 
 
         print("\n\n\n\nx:", xcurrent[:3], "\n", self.vehicle_q, "\n\n\n\nu:", u0, "\n", quaternion)
-
 
     def publish_vehicle_command(self, command, **params) -> None:
         """Publish a vehicle command."""
@@ -214,12 +211,30 @@ class OffboardControl(Node):
         if self.offboard_setpoint_counter < 11:
             self.offboard_setpoint_counter += 1
 
+    def gt_callback(self):
+        global real_x, real_y
+        global gt_start
+        gt_start = True
+        real_x.append(self.vehicle_position[0])
+        real_y.append(self.vehicle_position[1])
+        
+        
+    # def ref_callback(data):
+    #     global ref_start
+    #     ref_start = True
+    #     global ref_x, ref_y
+    #     ref_x.append(data.pose.pose.position.x)
+    #     ref_y.append(data.pose.pose.position.y)
+
 
 def main(args=None) -> None:
     print('Starting offboard control node...')
     rclpy.init(args=args)
     offboard_control = OffboardControl()
-    rclpy.spin(offboard_control)
+    try:
+        rclpy.spin(offboard_control)
+    except KeyboardInterrupt:
+        pass
     offboard_control.destroy_node()
     rclpy.shutdown()
 

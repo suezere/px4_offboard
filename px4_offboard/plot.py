@@ -23,7 +23,7 @@ def ref_callback(data):
     ref_y.append(data.pose.pose.position.y)
     
     
-rclpy.init_node('plotter', anonymous=True)
+rclpy.init('plotter', anonymous=True)
 rclpy.Subscriber('/bluerov2/pose_gt', Odometry, gt_callback)
 rclpy.Subscriber('/bluerov2/mpc/reference', Odometry, ref_callback)
 

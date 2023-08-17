@@ -9,11 +9,6 @@ from px4_msgs.msg import OffboardControlMode, VehicleCommand, VehicleAttitudeSet
 from acados_settings_model import acados_ocp
 from utils import *
 
-# Initialize MPC
-N = 20  # number of discretization steps   
-acados_solver_1 = acados_ocp(N)
-acados_solver_2 = acados_ocp(N)
-
 
 class OffboardControl(Node):
     """Node for controlling a vehicle in offboard mode."""
@@ -28,6 +23,13 @@ class OffboardControl(Node):
             history=HistoryPolicy.KEEP_LAST,
             depth=1
         )
+
+
+        # Initialize MPC
+        self.N = 200  # number of discretization steps   
+        self.acados_solver_1 = acados_ocp(self.N)
+        self.acados_solver_2 = acados_ocp(self.N)
+        
 
         # Create publishers
         self.offboard_control_mode_publisher_1 = self.create_publisher(
@@ -172,26 +174,26 @@ class OffboardControl(Node):
                              self.vehicle_velocity_1[0], self.vehicle_velocity_1[1], self.vehicle_velocity_1[2],
                              self.vehicle_roll_1, self.vehicle_pitch_1])
 
-        for j in range(N):
+        for j in range(self.N):
             yref = np.array([1.0, 1.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                              0.73, 0.0, 0.0])
-            acados_solver_1.set(j, "yref", yref)
-            acados_solver_1.set(j, "p", params)
+            self.acados_solver_1.set(j, "yref", yref)
+            self.acados_solver_1.set(j, "p", params)
         yref_N = np.array([1.0, 1.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        acados_solver_1.set(N, "yref", yref_N)
-        acados_solver_1.set(N, "p", params)
+        self.acados_solver_1.set(self.N, "yref", yref_N)
+        self.acados_solver_1.set(self.N, "p", params)
 
         # solve ocp for a fixed reference
-        acados_solver_1.set(0, "lbx", xcurrent)
-        acados_solver_1.set(0, "ubx", xcurrent)
+        self.acados_solver_1.set(0, "lbx", xcurrent)
+        self.acados_solver_1.set(0, "ubx", xcurrent)
 
-        status = acados_solver_1.solve()
+        status = self.acados_solver_1.solve()
         if status != 0:
             print("acados returned status {} in closed loop.".format(status))
 
         # get solution from acados_solver
-        xcurrent_pred = acados_solver_1.get(1, "x")
-        u0 = acados_solver_1.get(0, "u")
+        xcurrent_pred = self.acados_solver_1.get(1, "x")
+        u0 = self.acados_solver_1.get(0, "u")
 
         # computed inputs
         Thrust = u0[0]
@@ -226,26 +228,26 @@ class OffboardControl(Node):
                              self.vehicle_velocity_2[0], self.vehicle_velocity_2[1], self.vehicle_velocity_2[2],
                              self.vehicle_roll_2, self.vehicle_pitch_2])
         
-        for j in range(N):
+        for j in range(self.N):
             yref = np.array([1.0, 1.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                              0.73, 0.0, 0.0])
-            acados_solver_2.set(j, "yref", yref)
-            acados_solver_2.set(j, "p", params)
+            self.acados_solver_2.set(j, "yref", yref)
+            self.acados_solver_2.set(j, "p", params)
         yref_N = np.array([1.0, 1.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        acados_solver_2.set(N, "yref", yref_N)
-        acados_solver_2.set(N, "p", params)
+        self.acados_solver_2.set(self.N, "yref", yref_N)
+        self. acados_solver_2.set(self.N, "p", params)
         
         # solve ocp for a fixed reference
-        acados_solver_2.set(0, "lbx", xcurrent)
-        acados_solver_2.set(0, "ubx", xcurrent)
+        self.acados_solver_2.set(0, "lbx", xcurrent)
+        self.acados_solver_2.set(0, "ubx", xcurrent)
 
-        status = acados_solver_2.solve()
+        status = self.acados_solver_2.solve()
         if status != 0:
             print("acados returned status {} in closed loop.".format(status))
 
         # get solution from acados_solver
-        xcurrent_pred = acados_solver_2.get(1, "x")
-        u0 = acados_solver_2.get(0, "u")
+        xcurrent_pred = self.acados_solver_2.get(1, "x")
+        u0 = self.acados_solver_2.get(0, "u")
 
         # computed inputs
         Thrust = u0[0]

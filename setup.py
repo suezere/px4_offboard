@@ -28,6 +28,11 @@ setup(
         'console_scripts': [
                 'offboard = px4_offboard.offboard:main',
                 'offboard_multi = px4_offboard.offboard_multi:main',
+                'visualizer = px4_offboard.visualizer:main',
+                'test_offboard_multi = px4_offboard.test_offboard_multi:main',
+                'test_offboard = px4_offboard.test_offboard:main',
+                'offboard_control = px4_offboard.offboard_control:main',
+                'processes = px4_offboard.processes:main'
         ],
     },
 )
