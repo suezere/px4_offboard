@@ -10,59 +10,14 @@ from acados_settings import acados_settings
 from utils import *
 
 
-Tf = 1        # prediction horizon
-N = 20     # number of discretization steps
-Ts = Tf / N   # sampling time[s]
 
-T_hover = 2     # hovering time[s]
-T_traj = 20.00  # trajectory time[s]
+# # dimensions
+# nx = model.x.size()[0]
+# nu = model.u.size()[0]
+# ny = nx + nu
 
-T = T_hover + T_traj  # total simulation time
-
-# constants
-g = 9.81     # m/s^2
-
-# measurement noise bool
-noisy_measurement = False
-
-# input noise bool
-noisy_input = False
-
-# extended kalman filter bool
-# extended_kalman_filter = False
-
-# generate circulare trajectory with velocties
-traj_with_vel = False
-
-# use a single reference point
-ref_point = True
-
-# import trajectory with positions and velocities and inputs
-import_trajectory = False
-
-# bool to save measurements and inputs as .csv files
-save_data = True
-
-# load model and acados_solver
-model, acados_solver, acados_integrator = acados_settings(Ts, Tf, N)
-
-# dimensions
-nx = model.x.size()[0]
-nu = model.u.size()[0]
-ny = nx + nu
-N_hover = int(T_hover * N / Tf)
-N_traj = int(T_traj * N / Tf)
-Nsim = int(T * N / Tf)
-
-# initialize data structs
-simX = np.ndarray((Nsim+1, nx))
-simU = np.ndarray((Nsim, nu))
-tot_comp_sum = 0
-tcomp_max = 0
-
-# set initial condition for acados integrator
-xcurrent = model.x0.reshape((nx,))
-simX[0, :] = xcurrent
+# # set initial condition for acados integrator
+# xcurrent = model.x0.reshape((nx,))
 
 class OffboardControl(Node):
     """Node for controlling a vehicle in offboard mode."""
@@ -79,13 +34,13 @@ class OffboardControl(Node):
         )
 
         # Initialize MPC
-        # self.N = 20  # number of discretization steps   
-        # self.acados_solver = acados_settings(self.N)
-        
+        self.N = 20    # number of discretization steps
+        self.model, self.acados_solver = acados_settings(self.N)    # load model and acados_solver
+
         # Create publishers
         self.offboard_control_mode_publisher = self.create_publisher(
             OffboardControlMode, '/fmu/in/offboard_control_mode', qos_profile)
-        self.vehicle_attitude_setpoint_publisher_ = self.create_publisher(
+        self.vehicle_rates_setpoint_publisher_ = self.create_publisher(
             VehicleRatesSetpoint,"/fmu/in/vehicle_rates_setpoint", qos_profile)
         self.trajectory_setpoint_publisher = self.create_publisher(
             TrajectorySetpoint, '/fmu/in/trajectory_setpoint', qos_profile)
@@ -177,7 +132,7 @@ class OffboardControl(Node):
         self.trajectory_setpoint_publisher.publish(msg)
         self.get_logger().info(f"Publishing position setpoints {[x, y, z]}")
 
-    def publish_vehicle_attitude_setpoint(self):
+    def publish_vehicle_rates_setpoint(self):
         self.count += 1
         print(self.count)
         # euler_z = self.vehicle_yaw
@@ -195,34 +150,33 @@ class OffboardControl(Node):
         
         trajectory, number_of_steps = read_trajectory_from_file("circle.txt")
 
-        for j in range(N):
-            yref = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
-                            0.0, 0.0, 0.0, 0.76, 0.0, 0.0, 0.0])
-            acados_solver.set(j, "yref", yref)
+        for j in range(self.N):
+            yref = np.array([0.0, 0.3, 3.0, 1.0, 0.0, 0.0, 0.0,
+                            0.0, 0.0, 0.0, self.model.params.hover_thrust, 0.0, 0.0, 0.0])
+            self.acados_solver.set(j, "yref", yref)
             # yref = trajectory[self.count,:11]
             #                 # self.hover_thrust, 1.0, 0.0, 0.0, 0.0])
             # acados_solver.set(j, "yref", yref)
             # acados_solver.set(j, "p", params)
-        yref_N = np.array([0.0, 0.0, 0.0, 1.0,
+        yref_N = np.array([0.0, 0.3, 3.0, 1.0,
                                0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        acados_solver.set(N, "yref", yref_N)
-        # self.acados_solver.set(self.N, "p", params)
-        # print("\n\n\n\n\n\n",yref[:6])
+        self.acados_solver.set(self.N, "yref", yref_N)
+        
         # solve ocp for a fixed reference
-        acados_solver.set(0, "lbx", xcurrent)
-        acados_solver.set(0, "ubx", xcurrent)
+        self.acados_solver.set(0, "lbx", xcurrent)
+        self.acados_solver.set(0, "ubx", xcurrent)
 
-        status = acados_solver.solve()
+        status = self.acados_solver.solve()
         if status != 0:
             print("acados returned status {} in closed loop.".format(status))
 
         # get solution from acados_solver
-        xcurrent_pred = acados_solver.get(1, "x")
-        u0 = acados_solver.get(0, "u")
+        xcurrent_pred = self.acados_solver.get(1, "x")
+        u0 = self.acados_solver.get(0, "u")
 
         # computed inputs
         Thrust = u0[0]
-        Roll = -u0[1]
+        Roll = u0[1]
         Pitch = -u0[2]
         Yaw = -u0[3]
 
@@ -237,7 +191,7 @@ class OffboardControl(Node):
         msg.yaw = Yaw
         msg.thrust_body = np.asfarray([0, 0, -Thrust], dtype = np.float32)  # half-throttle
         msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)  # time in microseconds
-        self.vehicle_attitude_setpoint_publisher_.publish(msg)
+        self.vehicle_rates_setpoint_publisher_.publish(msg)
 
 
         print("x:", u0)
@@ -270,7 +224,7 @@ class OffboardControl(Node):
             self.arm()
 
         if self.vehicle_status.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD:
-            self.publish_vehicle_attitude_setpoint()
+            self.publish_vehicle_rates_setpoint()
 
         if self.offboard_setpoint_counter < 11:
             self.offboard_setpoint_counter += 1
